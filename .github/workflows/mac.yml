@@ -1,37 +1,17 @@
-name: Mac-Remote-Access
+name: Mac-VNC-Simple
 
 on: workflow_dispatch
 
 jobs:
-  mac-session:
+  mac:
     runs-on: macos-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install Ngrok
-        run: brew install ngrok
-
-      - name: Enable VNC
+      - name: Enable Screen Sharing
         run: |
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate
-
-      - name: Start Ngrok Tunnel
-        env:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        run: |
-          ngrok config add-authtoken $NGROK_AUTH_TOKEN
-          ngrok tcp 5900 &
-          sleep 10
-          ngrok_url=$(curl -s http://localhost:4040/api/tunnels | grep -o 'tcp://[^"]*')
-          echo "TUNNEL_URL=$ngrok_url" >> $GITHUB_ENV
-          echo "::notice:: Ngrok URL: $ngrok_url"
-          echo "=========================================="
-          echo "COPY THIS URL TO VNC VIEWER:"
-          echo "$ngrok_url"
-          echo "=========================================="
-
-      - name: Keep Running
-        run: sleep 21600
-
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -allowAccessFor -allUsers -privs -all
+          
+      - name: Install tmate (SSH Access)
+        uses: mxschmitt/action-tmate@v3
+      
+      - name: Keep alive
+        run: sleep 6h
