@@ -1,0 +1,40 @@
+name: Mac-Remote-Access
+
+on: workflow_dispatch
+
+jobs:
+  mac-session:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Ngrok
+        run: |
+          brew install ngrok
+
+      - name: Set VNC Password
+        env:
+          VNC_PASSWORD: "mypassword123"
+        run: |
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate
+
+      - name: Start Ngrok Tunnel
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: |
+          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+          ngrok tcp 5900 > ngrok-output.txt 2>&1 &
+          sleep 5
+
+      - name: Display Connection URL
+        run: |
+          echo "=========================================="
+          echo "MAC IS READY! COPY THIS URL:"
+          echo "=========================================="
+          sleep 3
+          curl -s http://localhost:4040/api/tunnels | jq '.tunnels[0].public_url' || echo "Getting URL..."
+
+      - name: Keep Mac Running (6 hours)
+        run: sleep 21600
