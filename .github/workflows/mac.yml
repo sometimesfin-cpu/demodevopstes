@@ -10,12 +10,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Ngrok
-        run: |
-          brew install ngrok
+        run: brew install ngrok
 
-      - name: Set VNC Password
-        env:
-          VNC_PASSWORD: "mypassword123"
+      - name: Enable VNC
         run: |
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate
@@ -25,16 +22,16 @@ jobs:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
           ngrok config add-authtoken $NGROK_AUTH_TOKEN
-          ngrok tcp 5900 > ngrok-output.txt 2>&1 &
-          sleep 5
-
-      - name: Display Connection URL
-        run: |
+          ngrok tcp 5900 &
+          sleep 10
+          ngrok_url=$(curl -s http://localhost:4040/api/tunnels | grep -o 'tcp://[^"]*')
+          echo "TUNNEL_URL=$ngrok_url" >> $GITHUB_ENV
+          echo "::notice:: Ngrok URL: $ngrok_url"
           echo "=========================================="
-          echo "MAC IS READY! COPY THIS URL:"
+          echo "COPY THIS URL TO VNC VIEWER:"
+          echo "$ngrok_url"
           echo "=========================================="
-          sleep 3
-          curl -s http://localhost:4040/api/tunnels | jq '.tunnels[0].public_url' || echo "Getting URL..."
 
-      - name: Keep Mac Running (6 hours)
+      - name: Keep Running
         run: sleep 21600
+
